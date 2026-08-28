@@ -12,7 +12,7 @@ def fmt_brl(v: float) -> str:
 
 
 def fmt_brl_full(v: float) -> str:
-    """Formata valor monetário por extenso: R$ 1.234,56 (para tabelas/Excel)."""
+    """Formata valor monetário por extenso: R$ 1.234,56 (para tabelas/Excel/PDF)."""
     s, a = ("-" if v < 0 else ""), abs(v)
     return f"{s}R$ {a:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
 
@@ -20,6 +20,12 @@ def fmt_brl_full(v: float) -> str:
 def fmt_pct(v: float) -> str:
     s, a = ("-" if v < 0 else ""), abs(v)
     return f"{s}{a:.1f}%"
+
+
+def fmt_pct_precisa(v: float) -> str:
+    """Formata percentual com 2 casas decimais (para taxas como CET)."""
+    s, a = ("-" if v < 0 else ""), abs(v)
+    return f"{s}{a:.2f}%"
 
 
 def fmt_meses(m: int | None) -> str:

@@ -1,4 +1,4 @@
-"""Geração do relatório .xlsx com os parâmetros e resultados das 3 comparações."""
+"""Geração do relatório .xlsx com os parâmetros e resultados das 4 comparações."""
 
 import io
 
@@ -6,7 +6,7 @@ from openpyxl import Workbook
 from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 from openpyxl.worksheet.worksheet import Worksheet
 
-from src.calculations import ResultadoFinanciamento, ResultadoInvestimento, ResultadoLance
+from src.calculations import ResultadoCET, ResultadoConsorcio, ResultadoFinanciamento, ResultadoInvestimento, ResultadoLance
 
 _THIN = Side(style="thin", color="2D2D4E")
 _BORDA = Border(left=_THIN, right=_THIN, top=_THIN, bottom=_THIN)
@@ -44,16 +44,18 @@ def gerar_excel(
     taxa_adm: float,
     fundo_reserva: float,
     seguro_perc: float,
+    reajuste_anual: float,
     perc_lance: float,
     mes_lance: int,
+    tipo_lance: str,
     taxa_financiamento: float,
     taxa_investimento: float,
     correcao_bem: float,
-    parcela_consorcio: float,
-    custo_total_consorcio: float,
+    consorcio: ResultadoConsorcio,
     financiamento: ResultadoFinanciamento,
     investimento: ResultadoInvestimento,
     lance: ResultadoLance,
+    cet: ResultadoCET,
 ) -> io.BytesIO:
     wb = Workbook()
 
@@ -80,9 +82,11 @@ def gerar_excel(
         ("Prazo (meses)", prazo_meses, "0"),
         ("Taxa de administração", taxa_adm / 100, "0.00%"),
         ("Fundo de reserva", fundo_reserva / 100, "0.00%"),
-        ("Seguro mensal", seguro_perc / 100, "0.000%"),
+        ("Seguro mensal (sobre saldo devedor)", seguro_perc / 100, "0.000%"),
+        ("Reajuste anual (INCC/IPCA)", reajuste_anual / 100, "0.00%"),
         ("Lance ofertado", perc_lance / 100, "0.00%"),
         ("Mês do lance", mes_lance, "0"),
+        ("Tipo de lance", "Próprio" if tipo_lance == "proprio" else "Embutido", None),
         ("Juros financiamento (a.m.)", taxa_financiamento / 100, "0.00%"),
         ("Rendimento investimento (a.m.)", taxa_investimento / 100, "0.00%"),
         ("Correção do bem (a.m.)", correcao_bem / 100, "0.00%"),
@@ -99,9 +103,10 @@ def gerar_excel(
     r += 1
     veredicto_fin = "Consórcio mais vantajoso" if financiamento.economia_consorcio > 0 else "Financiamento mais vantajoso"
     for lbl, v, fmt in [
-        ("Parcela consórcio", parcela_consorcio, '"R$"#,##0.00'),
+        ("Parcela consórcio (mês 1)", consorcio.parcela_inicial, '"R$"#,##0.00'),
+        ("Parcela consórcio (média)", consorcio.parcela_media, '"R$"#,##0.00'),
         ("Parcela financiamento", financiamento.parcela, '"R$"#,##0.00'),
-        ("Custo total consórcio", custo_total_consorcio, '"R$"#,##0.00'),
+        ("Custo total consórcio", consorcio.custo_total, '"R$"#,##0.00'),
         ("Custo total financiamento", financiamento.custo_total, '"R$"#,##0.00'),
         ("Economia do consórcio", financiamento.economia_consorcio, '"R$"#,##0.00'),
         ("Economia (%)", financiamento.economia_consorcio_perc / 100, "0.00%"),
@@ -133,7 +138,9 @@ def gerar_excel(
     _hdr(ws.cell(r, 1), "RESULTADOS — LANCE / CONTEMPLAÇÃO ANTECIPADA", bg="FF0F2818", fc="FF4ADE80", sz=10)
     r += 1
     for lbl, v, fmt in [
+        ("Tipo de lance", "Próprio" if lance.tipo == "proprio" else "Embutido", None),
         ("Valor do lance", lance.valor_lance, '"R$"#,##0.00'),
+        ("Crédito líquido recebido", lance.credito_liquido_recebido, '"R$"#,##0.00'),
         ("Meses antecipados", lance.meses_antecipados, "0"),
         ("Benefício (valorização evitada)", lance.beneficio_valorizacao_evitada, '"R$"#,##0.00'),
         ("Custo de oportunidade do lance", -lance.custo_oportunidade_lance, '"R$"#,##0.00'),
@@ -142,30 +149,43 @@ def gerar_excel(
         _linha(ws, r, lbl, v, fmt)
         r += 1
 
-    for col, w in zip("ABCD", [34, 20, 4, 4]):
+    r += 1
+    ws.merge_cells(f"A{r}:D{r}")
+    _hdr(ws.cell(r, 1), "RESULTADOS — CET (CUSTO EFETIVO TOTAL)", bg="FF0F2818", fc="FF4ADE80", sz=10)
+    r += 1
+    if cet.convergiu and cet.cet_anual is not None:
+        _linha(ws, r, f"CET anualizado (contemplação no mês {cet.mes_contemplacao})", cet.cet_anual / 100, "0.00%")
+    else:
+        _val(ws.cell(r, 1), "CET anualizado", fc="FF9CA3AF", bg="FF1A1A2E")
+        _val(ws.cell(r, 2), "Não convergiu para este mês de contemplação", fc="FFFB923C", bold=True, bg="FF16213E")
+
+    for col, w in zip("ABCD", [36, 22, 4, 4]):
         ws.column_dimensions[col].width = w
 
     # ── Aba Projeção Mensal ─────────────────────────────────────────────────
     ws2 = wb.create_sheet("Projeção Mensal")
     headers = [
-        "Mês", "Custo Acum. Consórcio", "Custo Acum. Financiamento",
+        "Mês", "Parcela Consórcio", "Saldo Devedor Consórcio", "Custo Acum. Financiamento",
         "Valor Investido Acum.", "Valor Bem Corrigido",
         "Saldo Devedor (sem lance)", "Saldo Devedor (com lance)",
     ]
     for i, h in enumerate(headers, 1):
         _hdr(ws2.cell(1, i), h, sz=9)
 
-    meses_eixo = investimento.meses
-    for idx, m in enumerate(meses_eixo, 2):
+    custo_acum_financ = 0.0
+    for idx, mes_info in enumerate(consorcio.cronograma, 2):
+        m = mes_info.mes
+        custo_acum_financ += financiamento.parcela
         _val(ws2.cell(idx, 1), m, fc="FF9CA3AF", bg="FF1A1A2E")
-        _val(ws2.cell(idx, 2), parcela_consorcio * m, fmt='"R$"#,##0.00', bg="FF16213E")
-        _val(ws2.cell(idx, 3), financiamento.parcela * m, fmt='"R$"#,##0.00', bg="FF16213E")
-        _val(ws2.cell(idx, 4), investimento.serie_investido[idx - 2], fmt='"R$"#,##0.00', bg="FF16213E")
-        _val(ws2.cell(idx, 5), investimento.serie_bem_corrigido[idx - 2], fmt='"R$"#,##0.00', bg="FF16213E")
-        _val(ws2.cell(idx, 6), lance.serie_saldo_sem_lance[idx - 2], fmt='"R$"#,##0.00', bg="FF16213E")
-        _val(ws2.cell(idx, 7), lance.serie_saldo_com_lance[idx - 2], fmt='"R$"#,##0.00', bg="FF16213E")
+        _val(ws2.cell(idx, 2), mes_info.parcela, fmt='"R$"#,##0.00', bg="FF16213E")
+        _val(ws2.cell(idx, 3), mes_info.saldo_devedor_depois, fmt='"R$"#,##0.00', bg="FF16213E")
+        _val(ws2.cell(idx, 4), custo_acum_financ, fmt='"R$"#,##0.00', bg="FF16213E")
+        _val(ws2.cell(idx, 5), investimento.serie_investido[m] if m < len(investimento.serie_investido) else None, fmt='"R$"#,##0.00', bg="FF16213E")
+        _val(ws2.cell(idx, 6), investimento.serie_bem_corrigido[m] if m < len(investimento.serie_bem_corrigido) else None, fmt='"R$"#,##0.00', bg="FF16213E")
+        _val(ws2.cell(idx, 7), lance.serie_saldo_sem_lance[m] if m < len(lance.serie_saldo_sem_lance) else None, fmt='"R$"#,##0.00', bg="FF16213E")
+        _val(ws2.cell(idx, 8), lance.serie_saldo_com_lance[m] if m < len(lance.serie_saldo_com_lance) else None, fmt='"R$"#,##0.00', bg="FF16213E")
 
-    for col, w in zip("ABCDEFG", [8, 22, 24, 20, 20, 22, 22]):
+    for col, w in zip("ABCDEFGH", [8, 20, 22, 24, 20, 20, 22, 22]):
         ws2.column_dimensions[col].width = w
 
     buf = io.BytesIO()

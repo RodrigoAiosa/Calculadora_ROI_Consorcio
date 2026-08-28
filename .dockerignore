@@ -1,0 +1,12 @@
+.git
+.github
+__pycache__
+*.pyc
+.pytest_cache
+.mypy_cache
+venv/
+.venv/
+tests/
+*.xlsx
+*.pdf
+.DS_Store
