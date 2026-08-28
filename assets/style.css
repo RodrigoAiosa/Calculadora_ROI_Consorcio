@@ -73,6 +73,19 @@ label { color: #9ca3af !important; font-size: 13px !important; }
 .metric-value.info    { color: #60a5fa; }
 .metric-value.danger  { color: #f87171; }
 
+/* Variante para valores textuais longos (ex: "Melhor Opção") — quebra em
+   vez de truncar com reticências, e o card cresce para acomodar 2 linhas. */
+.metric-card.tall { height: 108px; }
+.metric-value.wrap {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+    font-size: clamp(11px, 1.05vw, 15px);
+    line-height: 1.25;
+    word-break: keep-all;
+    overflow-wrap: break-word;
+}
+
 @media (max-width: 900px) {
     .metrics-row  { grid-template-columns: repeat(2, 1fr); }
 }

@@ -224,21 +224,21 @@ cet_label = fmt_pct_precisa(cet.cet_anual) if (cet.convergiu and cet.cet_anual i
 
 st.markdown(f"""
 <div class="metrics-row">
-  <div class="metric-card">
+  <div class="metric-card tall">
     <div class="metric-label">Parcela Consórcio (mês 1)</div>
     <div class="metric-value info">{fmt_brl(consorcio.parcela_inicial)}</div>
   </div>
-  <div class="metric-card">
+  <div class="metric-card tall">
     <div class="metric-label">Custo Total Consórcio</div>
     <div class="metric-value warning">{fmt_brl(consorcio.custo_total)}</div>
   </div>
-  <div class="metric-card">
+  <div class="metric-card tall">
     <div class="metric-label">CET Anualizado</div>
     <div class="{cor_card(cet.cet_anual if cet.cet_anual is not None else 0)}">{cet_label}</div>
   </div>
-  <div class="metric-card">
+  <div class="metric-card tall">
     <div class="metric-label">Melhor Opção</div>
-    <div class="metric-value">{melhor_opcao}</div>
+    <div class="metric-value wrap">{melhor_opcao}</div>
   </div>
 </div>
 """, unsafe_allow_html=True)
@@ -339,21 +339,21 @@ with tab2:
     st.markdown('<div class="section-title">Resultados</div>', unsafe_allow_html=True)
     st.markdown(f"""
     <div class="metrics-row">
-      <div class="metric-card">
+      <div class="metric-card tall">
         <div class="metric-label">Bem Corrigido em {prazo_meses}m</div>
         <div class="metric-value warning">{fmt_brl(investimento.serie_bem_corrigido[-1])}</div>
       </div>
-      <div class="metric-card">
+      <div class="metric-card tall">
         <div class="metric-label">Acumulado Investindo em {prazo_meses}m</div>
         <div class="metric-value info">{fmt_brl(investimento.serie_investido[-1])}</div>
       </div>
-      <div class="metric-card">
+      <div class="metric-card tall">
         <div class="metric-label">Ganho Líquido Investindo</div>
         <div class="{cor_card(investimento.ganho_final)}">{fmt_brl(investimento.ganho_final)}</div>
       </div>
-      <div class="metric-card">
+      <div class="metric-card tall">
         <div class="metric-label">Mês p/ Comprar à Vista</div>
-        <div class="metric-value">{fmt_meses(investimento.mes_cruzamento) if investimento.mes_cruzamento else "Fora do prazo"}</div>
+        <div class="metric-value wrap">{fmt_meses(investimento.mes_cruzamento) if investimento.mes_cruzamento else "Fora do prazo"}</div>
       </div>
     </div>
     """, unsafe_allow_html=True)
