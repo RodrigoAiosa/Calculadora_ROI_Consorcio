@@ -23,6 +23,7 @@ from src.comparador import ComparadorCSVError, comparar_administradoras, gerar_c
 from src.excel_export import gerar_excel
 from src.formatting import cor_card, fmt_brl, fmt_meses, fmt_pct, fmt_pct_precisa
 from src.glossario import GLOSSARIO
+from src.investimento_imovel import calcular_investimento_imovel
 from src.pdf_export import gerar_pdf_proposta
 from src.probabilidade import calcular_probabilidade_contemplacao
 from src.scenarios import CENARIOS
@@ -269,9 +270,9 @@ def aplicar_layout(fig: go.Figure, y_titulo: str = "R$", y_prefixo: str = "R$ ")
 # ─────────────────────────────────────────────────────────────────────────────
 # Tabs
 # ─────────────────────────────────────────────────────────────────────────────
-tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
+tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8 = st.tabs([
     "💳 Financiamento", "📈 Investir à Vista", "🎯 Lance", "📊 CET",
-    "🎲 Probabilidade", "📂 Comparar Administradoras", "📖 Glossário",
+    "🎲 Probabilidade", "📂 Comparar Administradoras", "🏠 Investir em Aluguel", "📖 Glossário",
 ])
 
 # ── TAB 1: Financiamento ─────────────────────────────────────────────────────
@@ -614,8 +615,197 @@ with tab6:
         except Exception as e:  # noqa: BLE001 — feedback amigável para qualquer erro de parsing
             st.error(f"❌ Não foi possível processar o CSV: {e}")
 
-# ── TAB 7: Glossário ──────────────────────────────────────────────────────────
+# ── TAB 7: Investir em Aluguel (consórcio imobiliário como investimento) ─────
 with tab7:
+    st.markdown('<div class="section-title">Consórcio Imobiliário como Investimento</div>', unsafe_allow_html=True)
+    st.caption(
+        "Caso de uso diferente do resto da calculadora: em vez de usar o bem, você usa o consórcio para "
+        "comprar um imóvel e colocá-lo para alugar, projetando o retorno em um horizonte de longo prazo."
+    )
+
+    with st.expander("⚙️ Parâmetros do Investimento", expanded=True):
+        col_a, col_b = st.columns(2)
+        with col_a:
+            st.markdown("**Consórcio**")
+            inv_valor_credito = st.number_input("Valor do crédito (R$)", min_value=10000.0, value=500000.0, step=10000.0, key="inv_valor_credito")
+            inv_prazo_meses = st.slider("Prazo do grupo (meses)", 60, 240, value=200, key="inv_prazo_meses")
+            inv_taxa_adm = st.number_input("Taxa de administração total (%)", min_value=0.0, value=18.0, step=0.5, key="inv_taxa_adm")
+            inv_fundo_reserva = st.number_input("Fundo de reserva (%)", min_value=0.0, value=2.0, step=0.5, key="inv_fundo_reserva")
+            inv_seguro_perc = st.number_input("Seguro mensal (% do saldo devedor)", min_value=0.0, value=0.0, step=0.01, format="%.3f", key="inv_seguro_perc")
+            inv_reajuste_anual = st.number_input("Reajuste anual do consórcio — INCC/IPCA (%)", min_value=0.0, value=0.0, step=0.5, key="inv_reajuste_anual")
+
+            st.markdown("**Contemplação e Lance**")
+            inv_mes_contemplacao = st.slider("Mês da contemplação (via lance)", 1, inv_prazo_meses, value=min(24, inv_prazo_meses), key="inv_mes_contemplacao")
+            inv_perc_lance = st.number_input("Lance ofertado (% do crédito)", min_value=0.0, max_value=100.0, value=30.0, step=1.0, key="inv_perc_lance")
+            inv_tipo_lance = st.radio(
+                "Tipo de lance", options=["proprio", "embutido"],
+                format_func=lambda x: "💰 Próprio (dinheiro extra)" if x == "proprio" else "📉 Embutido (parte do crédito)",
+                index=1, horizontal=True, key="inv_tipo_lance",
+            )
+
+        with col_b:
+            st.markdown("**Aquisição e Manutenção**")
+            inv_itbi_perc = st.number_input("ITBI + escritura (% do valor do bem)", min_value=0.0, value=4.0, step=0.5, key="inv_itbi_perc")
+            inv_manutencao = st.number_input("Manutenção/condomínio mensal (R$)", min_value=0.0, value=400.0, step=50.0, key="inv_manutencao")
+
+            st.markdown("**Locação**")
+            inv_yield_aluguel = st.number_input("Yield de aluguel (% do valor do imóvel/mês)", min_value=0.0, value=0.45, step=0.05, key="inv_yield_aluguel")
+            inv_reajuste_aluguel = st.number_input("Reajuste do aluguel — IPCA (% a.a.)", min_value=0.0, value=4.5, step=0.5, key="inv_reajuste_aluguel")
+
+            st.markdown("**Valorização e Horizonte**")
+            inv_valorizacao_anual = st.number_input("Valorização imobiliária (% a.a.)", min_value=0.0, value=5.0, step=0.5, key="inv_valorizacao_anual")
+            inv_horizonte_anos = st.slider("Horizonte total da simulação (anos)", 10, 40, value=20, key="inv_horizonte_anos")
+
+    inv_consorcio = calcular_consorcio(
+        inv_valor_credito, inv_prazo_meses, inv_taxa_adm, inv_fundo_reserva, inv_seguro_perc,
+        reajuste_anual=inv_reajuste_anual, seguro_sobre_saldo=True,
+    )
+    inv = calcular_investimento_imovel(
+        valor_credito=inv_valor_credito,
+        cronograma_consorcio=inv_consorcio.cronograma,
+        prazo_meses=inv_prazo_meses,
+        mes_contemplacao=inv_mes_contemplacao,
+        perc_lance=inv_perc_lance,
+        tipo_lance=inv_tipo_lance,
+        itbi_escritura_perc=inv_itbi_perc,
+        manutencao_mensal=inv_manutencao,
+        yield_aluguel_mensal=inv_yield_aluguel,
+        reajuste_aluguel_anual=inv_reajuste_aluguel,
+        valorizacao_imobiliaria_anual=inv_valorizacao_anual,
+        horizonte_anos=inv_horizonte_anos,
+    )
+
+    st.markdown(f'<div class="section-title">Fluxo de Caixa Detalhado ({inv_horizonte_anos} Anos)</div>', unsafe_allow_html=True)
+    st.markdown(
+        f"O fluxo de caixa projeta mês a mês os desembolsos e recebimentos ao longo de todo o período do "
+        f"consórcio e além, até completar {inv_horizonte_anos} anos de operação."
+    )
+
+    fase1_parcela_mes = inv_consorcio.cronograma[0].parcela if inv_consorcio.cronograma else 0.0
+    tipo_lance_label = "próprio (dinheiro extra)" if inv_tipo_lance == "proprio" else "embutido (parte do crédito)"
+
+    st.markdown(f"""
+    <div class="summary-box">
+    <p><strong>Fase 1 — Pré-Contemplação (meses {inv.fase1.mes_inicio} a {inv.fase1.mes_fim})</strong><br>
+    Desembolso mensal: {fmt_brl(fase1_parcela_mes)} (parcela do consórcio)<br>
+    Total desembolsado: {fmt_brl(inv.fase1.desembolso_total)}<br>
+    Lance ofertado no mês {inv.mes_contemplacao}: {fmt_brl(inv.valor_lance)} ({tipo_lance_label})<br>
+    Recebimento: nenhum (ainda não há imóvel)</p>
+    </div>
+    """, unsafe_allow_html=True)
+
+    st.markdown("<br>", unsafe_allow_html=True)
+    aluguel_inicial_fase2 = inv_valor_credito * (inv_yield_aluguel / 100)
+    parcela_fase2_mes = inv_consorcio.cronograma[inv.mes_contemplacao].parcela if inv.mes_contemplacao < len(inv_consorcio.cronograma) else 0.0
+    meses_fase2 = max(inv.fase2.mes_fim - inv.fase2.mes_inicio + 1, 0)
+    st.markdown(f"""
+    <div class="summary-box">
+    <p><strong>Fase 2 — Locação + Parcelas (meses {inv.fase2.mes_inicio} a {inv.fase2.mes_fim})</strong><br>
+    Desembolso mensal inicial: {fmt_brl(parcela_fase2_mes)} (parcela) + {fmt_brl(inv_manutencao)} (manutenção/condomínio)<br>
+    Recebimento mensal inicial (aluguel): {fmt_brl(aluguel_inicial_fase2)} (crescente com reajuste anual)<br>
+    Aluguel acumulado ({meses_fase2} meses): {fmt_brl(inv.fase2.recebimento_total)}<br>
+    Desembolso total da fase 2: {fmt_brl(inv.fase2.desembolso_total)}</p>
+    </div>
+    """, unsafe_allow_html=True)
+
+    st.markdown("<br>", unsafe_allow_html=True)
+    meses_fase3 = max(inv.fase3.mes_fim - inv.fase3.mes_inicio + 1, 0)
+    aluguel_final = inv.serie_aluguel[-1] if inv.serie_aluguel else 0.0
+    st.markdown(f"""
+    <div class="summary-box">
+    <p><strong>Fase 3 — Renda Líquida (meses {inv.fase3.mes_inicio} a {inv.fase3.mes_fim})</strong><br>
+    Parcela do consórcio: R$ 0 (quitado)<br>
+    Aluguel mensal ao final do horizonte (reajustado): {fmt_brl(aluguel_final)}<br>
+    Renda líquida ({meses_fase3} meses): {fmt_brl(inv.fase3.recebimento_total)}</p>
+    </div>
+    """, unsafe_allow_html=True)
+
+    st.markdown("<br>", unsafe_allow_html=True)
+    fig_inv = go.Figure()
+    fig_inv.add_trace(go.Scatter(
+        x=inv.serie_meses, y=inv.serie_patrimonio_acumulado, name="Fluxo de caixa acumulado",
+        line=dict(color="#4ade80", width=2.5), fill="tozeroy", fillcolor="rgba(74,222,128,0.08)",
+    ))
+    fig_inv.add_vline(x=inv.mes_contemplacao, line_dash="dot", line_color="#fb923c", line_width=1.5,
+                       annotation_text="Contemplação", annotation_font_color="#fb923c", annotation_position="top left")
+    fig_inv.add_vline(x=inv_prazo_meses, line_dash="dot", line_color="#60a5fa", line_width=1.5,
+                       annotation_text="Consórcio quitado", annotation_font_color="#60a5fa", annotation_position="top left")
+    aplicar_layout(fig_inv)
+    st.plotly_chart(fig_inv, width='stretch')
+
+    with st.expander("📋 Ver tabela mês a mês"):
+        df_inv = pd.DataFrame({
+            "Mês": inv.serie_meses,
+            "Fluxo Líquido do Mês": [f"R$ {v:,.2f}" for v in inv.serie_fluxo_liquido],
+            "Aluguel Recebido": [f"R$ {v:,.2f}" for v in inv.serie_aluguel],
+            "Fluxo Acumulado": [f"R$ {v:,.2f}" for v in inv.serie_patrimonio_acumulado],
+        })
+        st.dataframe(df_inv, width='stretch', hide_index=True)
+
+    st.markdown(f'<div class="section-title">Resumo Financeiro em {inv_horizonte_anos} Anos</div>', unsafe_allow_html=True)
+    tir_label = fmt_pct_precisa(inv.tir_anual_pct) if (inv.tir_convergiu and inv.tir_anual_pct is not None) else "N/D"
+    st.markdown(f"""
+    <div class="metrics-row">
+      <div class="metric-card">
+        <div class="metric-label">Total Desembolsado</div>
+        <div class="metric-value warning">{fmt_brl(inv.total_desembolsado)}</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Aluguéis Recebidos</div>
+        <div class="metric-value info">{fmt_brl(inv.alugueis_recebidos)}</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Valor do Imóvel Final</div>
+        <div class="metric-value">{fmt_brl(inv.valor_imovel_final)}</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Patrimônio Total Gerado</div>
+        <div class="{cor_card(inv.patrimonio_total)}">{fmt_brl(inv.patrimonio_total)}</div>
+      </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    st.markdown(f"""
+    <div class="metrics-row">
+      <div class="metric-card">
+        <div class="metric-label">ROI Total ({inv_horizonte_anos} anos)</div>
+        <div class="{cor_card(inv.roi_total_pct)}">{fmt_pct(inv.roi_total_pct)}</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">ROI Anualizado</div>
+        <div class="{cor_card(inv.roi_anualizado_pct)}">{fmt_pct_precisa(inv.roi_anualizado_pct)}</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">TIR Anualizada</div>
+        <div class="metric-value">{tir_label}</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Mês da Contemplação</div>
+        <div class="metric-value">{inv.mes_contemplacao}</div>
+      </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    if not inv.tir_convergiu:
+        st.warning(
+            "⚠️ A TIR não convergiu para este cenário — propriedade matemática do fluxo de caixa "
+            "(múltiplas trocas de sinal), não um erro. O ROI total e o ROI anualizado acima continuam válidos."
+        )
+
+    st.markdown("""
+    <div class="disclaimer-box">
+    <p>📌 Esta aba modela um caso de uso diferente do restante da calculadora: comprar um imóvel via
+    consórcio para <strong>alugar</strong> (gerar renda), não para uso próprio. A metodologia — 3 fases,
+    yield de aluguel sobre o valor do crédito, reajuste anual do aluguel pelo IPCA, valorização imobiliária
+    separada do reajuste do saldo devedor — é inspirada em simulações de mercado, mas os números são
+    projeções sensíveis às premissas que você ajustar acima. Valores brutos: não considera Imposto de Renda
+    sobre aluguel nem ganho de capital na venda. Ferramenta educacional — não substitui consultoria
+    financeira ou imobiliária.</p>
+    </div>
+    """, unsafe_allow_html=True)
+
+# ── TAB 8: Glossário ──────────────────────────────────────────────────────────
+with tab8:
     st.markdown('<div class="section-title">Glossário do Consórcio</div>', unsafe_allow_html=True)
     for item in GLOSSARIO:
         with st.expander(f"📖 {item['termo']}"):

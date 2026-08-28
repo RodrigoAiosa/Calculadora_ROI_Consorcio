@@ -9,9 +9,10 @@ Aplicação web interativa construída com **Streamlit** para avaliar se um
 consórcio (veículo, imóvel, moto, máquina etc.) vale a pena, comparando-o
 com as principais alternativas — **financiamento**, **investir e comprar à
 vista** e **antecipação por lance** — além de calcular o **CET**, simular a
-**probabilidade de contemplação por sorteio** e comparar **administradoras
-via CSV**. Interface em tela cheia com tema escuro, cenários pré-definidos
-e exportação para Excel e PDF.
+**probabilidade de contemplação por sorteio**, comparar **administradoras
+via CSV** e projetar o **consórcio imobiliário como investimento** (compra +
+locação). Interface em tela cheia com tema escuro, cenários pré-definidos e
+exportação para Excel e PDF.
 
 ---
 
@@ -32,6 +33,9 @@ A ferramenta responde estas perguntas em uma única tela:
    sorteio (sem lance) até um determinado mês?
 6. **Comparação de administradoras** — entre várias propostas (via CSV),
    qual tem o menor CET?
+7. **Consórcio imobiliário como investimento** — comprando um imóvel via
+   consórcio para alugar (não para uso próprio), qual o ROI projetado em
+   20+ anos?
 
 ---
 
@@ -88,6 +92,29 @@ Envie um `.csv` com propostas de diferentes administradoras (mesmo formato
 do modelo disponível para download na própria aba) e a ferramenta rankeia
 por CET — menor custo primeiro.
 
+### 🏠 Aba — Consórcio Imobiliário como Investimento
+Caso de uso diferente do resto da calculadora: em vez de usar o bem, você
+usa o consórcio para comprar um imóvel e colocá-lo para alugar. Projeta o
+**Fluxo de Caixa Detalhado** em 3 fases ao longo de um horizonte de longo
+prazo (padrão: 20 anos):
+
+- **Fase 1 — Pré-Contemplação**: paga a parcela do consórcio, sem receita.
+- **Fase 2 — Locação + Parcelas**: a partir da contemplação (via lance
+  próprio ou embutido), o imóvel é alugado enquanto as parcelas continuam
+  até o fim do prazo do grupo.
+- **Fase 3 — Renda Líquida**: consórcio quitado, sobra só o aluguel
+  (reajustado) até o fim do horizonte.
+
+Calcula o **Resumo Financeiro** completo: total desembolsado, aluguéis
+recebidos, valor do imóvel corrigido, patrimônio total gerado, ROI total,
+ROI anualizado e a TIR (Taxa Interna de Retorno) do fluxo de caixa completo.
+
+> Metodologia inspirada em simulações de ROI de consórcio imobiliário
+> usadas no mercado. Os parâmetros (yield de aluguel, reajuste do aluguel
+> pelo IPCA, valorização imobiliária, ITBI/escritura, manutenção) são
+> totalmente ajustáveis — os valores padrão refletem um exemplo ilustrativo
+> de mercado, não uma recomendação.
+
 ### 📖 Aba — Glossário
 Termos do setor explicados: taxa de administração, fundo de reserva,
 seguro, contemplação, lance, reajuste anual, CET, saldo devedor, cota e
@@ -116,10 +143,15 @@ gerado com `reportlab`.
 | Lance embutido — crédito líquido | `crédito_atual − valor_lance` (sem custo de oportunidade, sem desembolso extra) |
 | CET | TIR mensal do fluxo `[-parcela, ..., -parcela + crédito (no mês de contemplação), ..., -parcela]`, anualizada por `(1+i)^12 − 1` |
 | Probabilidade de sorteio (mês *m*) | `1 / cotas_remanescentes` naquele mês, acumulada como `1 − ∏(1 − p_mês)` |
+| Aluguel inicial (investimento imobiliário) | `crédito × yield_aluguel_mensal`, reajustado a cada 12 meses de locação pelo IPCA |
+| Valor do imóvel no horizonte | `crédito × (1 + valorização_anual)^horizonte_anos` |
+| ROI total (20 anos) | `patrimônio_total / total_desembolsado − 1`, onde `patrimônio_total = aluguéis_recebidos + valor_do_imóvel` |
+| ROI anualizado | `(1 + ROI_total)^(1/horizonte_anos) − 1` |
 
 Todas as fórmulas estão isoladas em `src/calculations.py`,
-`src/probabilidade.py` e `src/comparador.py`, sem dependência do Streamlit
-— podem ser testadas e reaproveitadas fora da interface web.
+`src/probabilidade.py`, `src/comparador.py` e `src/investimento_imovel.py`,
+sem dependência do Streamlit — podem ser testadas e reaproveitadas fora da
+interface web.
 
 ---
 
@@ -150,7 +182,8 @@ roi-consorcio/
 ├── src/
 │   ├── __init__.py
 │   ├── scenarios.py              # Cenários pré-definidos
-│   ├── calculations.py           # Núcleo de cálculo (cronograma, CET, lance, financiamento, investimento)
+│   ├── calculations.py           # Núcleo de cálculo (cronograma, CET, TIR, lance, financiamento, investimento)
+│   ├── investimento_imovel.py    # Consórcio imobiliário como investimento (compra + locação, 3 fases)
 │   ├── probabilidade.py          # Simulador de contemplação por sorteio
 │   ├── comparador.py             # Comparador de administradoras via CSV
 │   ├── pdf_export.py             # Geração de proposta em PDF
@@ -159,7 +192,8 @@ roi-consorcio/
 │   └── formatting.py             # Formatação de moeda, %, meses
 │
 └── tests/
-    ├── test_calculations.py      # Testes do núcleo de cálculo (18 casos)
+    ├── test_calculations.py      # Testes do núcleo de cálculo
+    ├── test_investimento_imovel.py  # Testes do consórcio imobiliário como investimento
     ├── test_formatting.py        # Testes de formatação
     ├── test_probabilidade.py     # Testes do simulador de sorteio
     ├── test_comparador.py        # Testes do comparador de CSV

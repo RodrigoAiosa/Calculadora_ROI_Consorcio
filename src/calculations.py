@@ -340,6 +340,51 @@ def _npv(taxa_mensal: float, fluxos: list[float]) -> float:
     return sum(cf / (1 + taxa_mensal) ** (t + 1) for t, cf in enumerate(fluxos))
 
 
+def calcular_tir_mensal(fluxos: list[float]) -> tuple[float | None, bool]:
+    """
+    Calcula a TIR (Taxa Interna de Retorno) mensal de uma lista de fluxos de
+    caixa mensais (índice 0 = mês 1), via varredura + bisseção sobre o NPV.
+
+    Retorna `(tir_mensal, convergiu)`. Quando não há troca de sinal do NPV no
+    intervalo de busca (-90% a +500% a.m.), retorna `(None, False)` — isso é
+    uma propriedade matemática do fluxo (não necessariamente um erro), comum
+    quando o fluxo tem mais de uma troca de sinal (ex: um único aporte pontual
+    no meio de uma série de saídas constantes).
+    """
+    if not fluxos:
+        return None, False
+
+    pontos = [i / 100 for i in range(-90, 500, 1)]  # -90% a +500% a.m., passo 1%
+    anterior_i, anterior_npv = pontos[0], _npv(pontos[0], fluxos)
+    intervalo = None
+    for i in pontos[1:]:
+        atual_npv = _npv(i, fluxos)
+        if anterior_npv == 0:
+            intervalo = (anterior_i, anterior_i)
+            break
+        if (anterior_npv < 0) != (atual_npv < 0):
+            intervalo = (anterior_i, i)
+            break
+        anterior_i, anterior_npv = i, atual_npv
+
+    if intervalo is None:
+        return None, False
+
+    lo, hi = intervalo
+    if lo == hi:
+        return lo, True
+
+    for _ in range(200):
+        mid = (lo + hi) / 2
+        npv_mid = _npv(mid, fluxos)
+        npv_lo = _npv(lo, fluxos)
+        if (npv_lo < 0) == (npv_mid < 0):
+            lo = mid
+        else:
+            hi = mid
+    return (lo + hi) / 2, True
+
+
 def calcular_cet(
     parcelas: list[float],
     valor_credito_recebido: float,
@@ -364,36 +409,9 @@ def calcular_cet(
     fluxos = [-p for p in parcelas]
     fluxos[mes_contemplacao - 1] += valor_credito_recebido
 
-    # Varredura para localizar um intervalo com troca de sinal do NPV.
-    pontos = [i / 100 for i in range(-90, 500, 1)]  # -90% a +500% a.m., passo 1%
-    anterior_i, anterior_npv = pontos[0], _npv(pontos[0], fluxos)
-    intervalo = None
-    for i in pontos[1:]:
-        atual_npv = _npv(i, fluxos)
-        if anterior_npv == 0:
-            intervalo = (anterior_i, anterior_i)
-            break
-        if (anterior_npv < 0) != (atual_npv < 0):
-            intervalo = (anterior_i, i)
-            break
-        anterior_i, anterior_npv = i, atual_npv
-
-    if intervalo is None:
+    tir_mensal, convergiu = calcular_tir_mensal(fluxos)
+    if not convergiu or tir_mensal is None:
         return ResultadoCET(cet_mensal=None, cet_anual=None, mes_contemplacao=mes_contemplacao, convergiu=False)
 
-    lo, hi = intervalo
-    if lo == hi:
-        cet_mensal = lo
-    else:
-        for _ in range(200):
-            mid = (lo + hi) / 2
-            npv_mid = _npv(mid, fluxos)
-            npv_lo = _npv(lo, fluxos)
-            if (npv_lo < 0) == (npv_mid < 0):
-                lo = mid
-            else:
-                hi = mid
-        cet_mensal = (lo + hi) / 2
-
-    cet_anual = (1 + cet_mensal) ** 12 - 1
-    return ResultadoCET(cet_mensal=cet_mensal * 100, cet_anual=cet_anual * 100, mes_contemplacao=mes_contemplacao, convergiu=True)
+    cet_anual = (1 + tir_mensal) ** 12 - 1
+    return ResultadoCET(cet_mensal=tir_mensal * 100, cet_anual=cet_anual * 100, mes_contemplacao=mes_contemplacao, convergiu=True)

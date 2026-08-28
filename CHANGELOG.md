@@ -2,6 +2,33 @@
 
 Todas as mudanças notáveis deste projeto são documentadas aqui.
 
+## [2.1.0] — Consórcio Imobiliário como Investimento
+
+### Adicionado
+- **Nova aba "🏠 Investir em Aluguel"** — modela um caso de uso diferente do
+  resto da calculadora: comprar um imóvel via consórcio para alugar (gerar
+  renda), não para uso próprio.
+- **`src/investimento_imovel.py`** — motor de cálculo do fluxo de caixa em
+  3 fases (Pré-Contemplação, Locação + Parcelas, Renda Líquida) ao longo de
+  um horizonte de longo prazo (padrão: 20 anos), com yield de aluguel,
+  reajuste do aluguel pelo IPCA, valorização imobiliária anual e ITBI/escritura.
+- **Resumo Financeiro do horizonte**: total desembolsado, aluguéis
+  recebidos, valor do imóvel corrigido, patrimônio total gerado, ROI total,
+  ROI anualizado e TIR (Taxa Interna de Retorno) do fluxo de caixa completo.
+- **`calcular_tir_mensal`** extraída de `calcular_cet` como função pública
+  reutilizável em `src/calculations.py` (elimina duplicação de lógica de
+  TIR entre CET e o novo módulo de investimento imobiliário).
+- 11 novos testes unitários (`tests/test_investimento_imovel.py`), incluindo
+  um teste de regressão para o caso em que o horizonte de simulação termina
+  antes do fim do prazo do consórcio.
+
+### Corrigido
+- Bug descoberto durante o desenvolvimento: quando o horizonte de simulação
+  (ex: 10 anos) termina antes do fim do prazo do consórcio (ex: 200 meses),
+  a Fase 2 somava parcelas/aluguéis além do fim da série mensal, gerando
+  totais inconsistentes com o gráfico. Corrigido limitando o fim da Fase 2
+  e o mês de contemplação ao horizonte total.
+
 ## [2.0.0] — Implementação do roadmap completo
 
 ### Adicionado
