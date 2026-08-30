@@ -18,7 +18,7 @@ import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
-from src.auth import exigir_login
+from src.auth import CHAVE_NOME, CHAVE_SESSAO, exigir_login
 from src.calculations import calcular_cet, calcular_consorcio, calcular_financiamento, calcular_investimento, calcular_lance
 from src.comparador import ComparadorCSVError, comparar_administradoras, gerar_csv_exemplo
 from src.excel_export import gerar_excel
@@ -56,6 +56,16 @@ exigir_login()
 # Sidebar — cenário e parâmetros de entrada
 # ─────────────────────────────────────────────────────────────────────────────
 with st.sidebar:
+    col_saudacao, col_sair = st.columns([3, 1])
+    with col_saudacao:
+        st.markdown(f'<div class="user-greeting">👋 {st.session_state.get(CHAVE_NOME, "")}</div>', unsafe_allow_html=True)
+    with col_sair:
+        if st.button("Sair", use_container_width=True):
+            st.session_state.pop(CHAVE_SESSAO, None)
+            st.session_state.pop(CHAVE_NOME, None)
+            st.rerun()
+    st.markdown("---")
+
     st.markdown('<div class="header-tag">// Cenários</div>', unsafe_allow_html=True)
     st.markdown("## Configuração")
     st.markdown("Selecione um cenário ou configure manualmente.")
