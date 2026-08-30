@@ -174,7 +174,8 @@ roi-consorcio/
 │       └── tests.yml            # CI: pytest + mypy em Python 3.11 e 3.12
 │
 ├── .streamlit/
-│   └── config.toml              # Tema escuro e configurações do servidor
+│   ├── config.toml              # Tema escuro e configurações do servidor
+│   └── secrets.toml.example     # Modelo da senha de acesso (copie para secrets.toml)
 │
 ├── assets/
 │   └── style.css                # CSS customizado (cards, tabs, tema)
@@ -189,7 +190,8 @@ roi-consorcio/
 │   ├── pdf_export.py             # Geração de proposta em PDF
 │   ├── excel_export.py           # Geração do relatório .xlsx
 │   ├── glossario.py              # Termos do glossário educativo
-│   └── formatting.py             # Formatação de moeda, %, meses
+│   ├── formatting.py             # Formatação de moeda, %, meses
+│   └── auth.py                   # Tela de acesso (gate por senha)
 │
 └── tests/
     ├── test_calculations.py      # Testes do núcleo de cálculo
@@ -197,7 +199,8 @@ roi-consorcio/
     ├── test_formatting.py        # Testes de formatação
     ├── test_probabilidade.py     # Testes do simulador de sorteio
     ├── test_comparador.py        # Testes do comparador de CSV
-    └── test_exports.py           # Smoke tests de Excel e PDF
+    ├── test_exports.py           # Smoke tests de Excel e PDF
+    └── test_auth.py              # Testes da verificação de senha
 ```
 
 ---
@@ -214,10 +217,14 @@ python -m venv venv
 source venv/bin/activate    # Windows: venv\Scripts\activate
 
 pip install -r requirements.txt
+cp .streamlit/secrets.toml.example .streamlit/secrets.toml   # defina sua senha de acesso
 streamlit run app.py
 ```
 
-A aplicação abrirá automaticamente em `http://localhost:8501`.
+A aplicação abrirá automaticamente em `http://localhost:8501` e pedirá a
+senha configurada em `.streamlit/secrets.toml` (chave `app_password`) antes
+de liberar a calculadora. Em produção no Streamlit Community Cloud, defina a
+mesma chave em **Settings → Secrets** (o arquivo local não é versionado).
 
 ### Via Docker
 

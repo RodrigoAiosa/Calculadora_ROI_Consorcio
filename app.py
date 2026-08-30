@@ -18,6 +18,7 @@ import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
+from src.auth import exigir_login
 from src.calculations import calcular_cet, calcular_consorcio, calcular_financiamento, calcular_investimento, calcular_lance
 from src.comparador import ComparadorCSVError, comparar_administradoras, gerar_csv_exemplo
 from src.excel_export import gerar_excel
@@ -48,6 +49,7 @@ def carregar_css(caminho: Path) -> None:
 
 
 carregar_css(BASE_DIR / "assets" / "style.css")
+exigir_login()
 
 
 # ─────────────────────────────────────────────────────────────────────────────
