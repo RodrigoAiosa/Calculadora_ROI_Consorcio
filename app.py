@@ -48,6 +48,13 @@ def carregar_css(caminho: Path) -> None:
         st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
 
 
+@st.cache_data
+def carregar_apresentacao(caminho: Path) -> bytes | None:
+    if not caminho.exists():
+        return None
+    return caminho.read_bytes()
+
+
 carregar_css(BASE_DIR / "assets" / "style.css")
 exigir_login()
 
@@ -65,6 +72,16 @@ with st.sidebar:
             st.session_state.pop(CHAVE_NOME, None)
             st.rerun()
     st.markdown("---")
+
+    apresentacao_bytes = carregar_apresentacao(BASE_DIR / "Calculadora_ROI_Consorcio_Apresentacao.pptx")
+    if apresentacao_bytes is not None:
+        st.download_button(
+            label="📥 Baixar Apresentação (.pptx)", data=apresentacao_bytes,
+            file_name="Calculadora_ROI_Consorcio_Apresentacao.pptx",
+            mime="application/vnd.openxmlformats-officedocument.presentationml.presentation",
+            use_container_width=True,
+        )
+        st.markdown("---")
 
     st.markdown('<div class="header-tag">// Cenários</div>', unsafe_allow_html=True)
     st.markdown("## Configuração")
