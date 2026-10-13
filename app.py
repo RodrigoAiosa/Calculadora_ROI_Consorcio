@@ -28,6 +28,7 @@ from src.investimento_imovel import calcular_investimento_imovel
 from src.pdf_export import gerar_pdf_proposta
 from src.probabilidade import calcular_probabilidade_contemplacao
 from src.scenarios import CENARIOS
+from esconder_selo import esconder_selo_streamlit
 
 BASE_DIR = Path(__file__).parent
 
@@ -41,6 +42,7 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded",
 )
+esconder_selo_streamlit()  # oculta os controles do Streamlit Cloud
 
 
 def carregar_css(caminho: Path) -> None:
