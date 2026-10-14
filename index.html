@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Calculadora ROI de Consórcio</title>
+<meta name="description" content="Simule consórcio x financiamento x investir à vista x lance. CET, reajuste anual, seguro decrescente, fluxo de caixa de 20 anos e comparador de administradoras.">
+<meta property="og:title" content="Calculadora ROI de Consórcio">
+<meta property="og:description" content="Compare consórcio, financiamento, investimento à vista e lance com CET e fluxo de caixa de 20 anos.">
+<meta property="og:type" content="website">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📈</text></svg>">
+<style>
+  :root{
+    --bg:#0b1220; --card:#121b2e; --line:#22304a; --text:#e8eefc; --muted:#9fb0cf;
+    --accent:#3ddc97; --accent2:#4f8cff;
+  }
+  @media (prefers-color-scheme: light){
+    :root{ --bg:#f5f8ff; --card:#ffffff; --line:#dbe4f5; --text:#0f1b33; --muted:#52627f; --accent:#0e9f6e; --accent2:#2563eb; }
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);font:16px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+  .wrap{max-width:1040px;margin:0 auto;padding:0 20px}
+  header{padding:20px 0;display:flex;justify-content:space-between;align-items:center}
+  .brand{font-weight:700;letter-spacing:.2px}
+  .brand span{color:var(--accent)}
+  .btn{display:inline-block;padding:12px 22px;border-radius:10px;font-weight:600;text-decoration:none;transition:transform .15s}
+  .btn:hover{transform:translateY(-1px)}
+  .btn.primary{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#04101f}
+  .btn.ghost{border:1px solid var(--line);color:var(--text)}
+  .hero{padding:56px 0 40px;text-align:center}
+  .hero h1{font-size:clamp(30px,5vw,52px);line-height:1.1;margin:0 0 16px}
+  .hero h1 em{font-style:normal;background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;background-clip:text;color:transparent}
+  .hero p{max-width:640px;margin:0 auto 28px;color:var(--muted);font-size:18px}
+  .cta{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:16px;margin:48px 0}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px}
+  .card h3{margin:0 0 6px;font-size:17px}
+  .card p{margin:0;color:var(--muted);font-size:15px}
+  .card .ico{font-size:26px;margin-bottom:8px}
+  h2{font-size:26px;margin:56px 0 16px}
+  .frame{border:1px solid var(--line);border-radius:14px;overflow:hidden;background:var(--card)}
+  .frame iframe{display:block;width:100%;height:80vh;min-height:560px;border:0}
+  .frame .fallback{padding:12px 16px;font-size:14px;color:var(--muted);border-top:1px solid var(--line)}
+  .frame .fallback a{color:var(--accent2)}
+  footer{padding:40px 0;color:var(--muted);font-size:14px;text-align:center}
+  footer a{color:var(--accent2)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="brand">📈 ROI <span>Consórcio</span></div>
+    <a class="btn ghost" href="https://github.com/RodrigoAiosa/Calculadora_ROI_Consorcio" target="_blank" rel="noopener">GitHub</a>
+  </header>
+
+  <section class="hero">
+    <h1>Descubra se o consórcio <em>realmente compensa</em></h1>
+    <p>Compare consórcio, financiamento, investimento à vista e lance na mesma calculadora, com CET, reajuste anual e fluxo de caixa de 20 anos.</p>
+    <div class="cta">
+      <a class="btn primary" href="https://calculadoraroiconsorcio.streamlit.app/" target="_blank" rel="noopener">Abrir a calculadora</a>
+      <a class="btn ghost" href="#app">Ver aqui na página</a>
+    </div>
+  </section>
+
+  <section class="grid" aria-label="Recursos">
+    <div class="card"><div class="ico">⚖️</div><h3>3 comparações em 1</h3><p>Consórcio x financiamento, x investir à vista e x lance.</p></div>
+    <div class="card"><div class="ico">📊</div><h3>CET real</h3><p>Custo Efetivo Total por TIR, com reajuste anual e seguro sobre saldo decrescente.</p></div>
+    <div class="card"><div class="ico">🏠</div><h3>Fluxo de caixa de 20 anos</h3><p>Imóvel como investimento: pré-contemplação, locação + parcelas e renda líquida.</p></div>
+    <div class="card"><div class="ico">🎲</div><h3>Lance e sorteio</h3><p>Lance próprio ou embutido e probabilidade acumulada de contemplação.</p></div>
+    <div class="card"><div class="ico">🏦</div><h3>Comparador de administradoras</h3><p>Suba um CSV e ranqueie propostas por CET.</p></div>
+    <div class="card"><div class="ico">📄</div><h3>Exportação</h3><p>Relatório em Excel e proposta em PDF de uma página.</p></div>
+  </section>
+
+  <section id="app">
+    <h2>Use agora</h2>
+    <div class="frame">
+      <iframe src="https://calculadoraroiconsorcio.streamlit.app/?embed=true" title="Calculadora ROI de Consórcio" loading="lazy" allow="clipboard-write"></iframe>
+      <div class="fallback">Não carregou? <a href="https://calculadoraroiconsorcio.streamlit.app/" target="_blank" rel="noopener">Abra em tela cheia</a>.</div>
+    </div>
+  </section>
+
+  <footer>
+    Ferramenta educacional, não constitui recomendação financeira.<br>
+    Feito por <a href="https://github.com/RodrigoAiosa" target="_blank" rel="noopener">Rodrigo Aiosa</a>.
+  </footer>
+</div>
+</body>
+</html>

@@ -1,0 +1,11 @@
+# O app Streamlit roda no Streamlit Cloud; a Vercel publica apenas o index.html
+app.py
+esconder_selo.py
+src
+tests
+requirements.txt
+mypy.ini
+Dockerfile
+.streamlit
+assets
+*.pptx
